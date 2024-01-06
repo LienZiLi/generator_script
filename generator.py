@@ -15,6 +15,13 @@ p_paragraph = []
 
 # ---generating functions---
 def export_docx():
+    doc = docx.Document("test.docx")
+    data = pd.read_excel("test.xlsx")
+    for i in range(len(data[p_title[0]])):
+        for j in range(p_numbers):
+            doc.paragraphs[p_paragraph[j]].text = doc.paragraphs[p_paragraph[j]].text.replace(placeholders[j], data[p_title[j]][i])
+            print(doc.paragraphs[p_paragraph[j]].text)
+        doc.save("test_" + data["姓名"][i].replace(" ", "_") + ".docx")
     return None
 
 def export_pdf():
@@ -35,5 +42,6 @@ def find_words():
 # ---main function---
 p_paragraph = find_words()
 print(p_paragraph)
+export_docx()
 print("done")
 # ---main function---
