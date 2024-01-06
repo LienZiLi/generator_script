@@ -1,6 +1,5 @@
 # ---imports---
 import docx
-from docx.oxml.ns import qn
 from docx2pdf import convert
 import os
 import pandas as pd
@@ -11,10 +10,11 @@ p_numbers = 3
 placeholders = ["測試名", "測試編號", "測試試場"]
 p_title = ["姓名", "編號", "試場"]
 p_paragraph = []
+save_with = "姓名"
 # ---variables---
 
 # ---generating functions---
-def export_docx():
+def export(pdf):
     doc = docx.Document("test.docx")
     data = pd.read_excel("test.xlsx")
     for i in range(len(data[p_title[0]])):
@@ -25,10 +25,12 @@ def export_docx():
                     text = inline[k].text.replace(placeholders[j], data[p_title[j]][i])
                     inline[k].text = text
             print(doc.paragraphs[p_paragraph[j]].text)
-        doc.save("test_" + data["姓名"][i].replace(" ", "_") + ".docx")
-    return None
-
-def export_pdf():
+        docx_name = "test_" + data[save_with][i].replace(" ", "_") + ".docx"
+        doc.save(docx_name)
+        if pdf:
+            pdf_name = "test_" + data[save_with][i].replace(" ", "_") + ".pdf"
+            convert(docx_name, pdf_name)
+            os.remove(docx_name)
     return None
 # ---generating functions---
 
@@ -46,6 +48,6 @@ def find_words():
 # ---main function---
 p_paragraph = find_words()
 print(p_paragraph)
-export_docx()
+export(pdf = True)
 print("done")
 # ---main function---
