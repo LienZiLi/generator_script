@@ -19,7 +19,11 @@ def export_docx():
     data = pd.read_excel("test.xlsx")
     for i in range(len(data[p_title[0]])):
         for j in range(p_numbers):
-            doc.paragraphs[p_paragraph[j]].text = doc.paragraphs[p_paragraph[j]].text.replace(placeholders[j], data[p_title[j]][i])
+            inline = doc.paragraphs[p_paragraph[j]].runs
+            for k in range(len(inline)):
+                if placeholders[j] in inline[k].text:
+                    text = inline[k].text.replace(placeholders[j], data[p_title[j]][i])
+                    inline[k].text = text
             print(doc.paragraphs[p_paragraph[j]].text)
         doc.save("test_" + data["姓名"][i].replace(" ", "_") + ".docx")
     return None
