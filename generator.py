@@ -21,6 +21,7 @@ data_path = ""
 
 # ---generating functions---
 def export(pdf):
+    global p_numbers, p_paragraph, placeholders, p_title, save_with, save_name, save_folder, doc_path, data_path, output
     doc = docx.Document(doc_path)
     data = pd.read_excel(data_path)
     for i in range(len(data[p_title[0]])):
@@ -53,58 +54,90 @@ def find_words():
 
 # ---choose doc function---
 def select_doc():
-    global doc_path
+    global doc_path, show_doc
     filetypes = (('document files', '*.docx'),)
     doc_path = fd.askopenfilename(title='Choose a file', initialdir='./', filetypes=filetypes)
+    show_doc.set(doc_path.split("/")[-1])
+    return None
 # ---choose doc function---
     
 # ---choose data function---
 def select_data():
-    global data_path
+    global data_path, show_data
     filetypes = (('Excel files', '*.xlsx'),)
     data_path = fd.askopenfilename(title='Choose a file', initialdir='./', filetypes=filetypes)
+    show_data.set(data_path.split("/")[-1])
+    return None
 # ---choose data function---
     
 # ---set word function---
 def set_words():
-    global p_numbers, p_paragraph, p_title
+    global p_numbers, placeholders, p_title, output
     p_numbers = int(i3_1.get())
-    p_paragraph = i3_2.get().split(",")
+    placeholders = i3_2.get().split(",")
     p_title = i3_3.get().split(",")
+    if (p_numbers == len(placeholders) and p_numbers == p_title):
+        return None
+    else:
+        err = "error: 3. 替代數量:" + p_numbers + "，替代文字數量:" + len(placeholders) + "，標題名稱數量:" + len(p_title) + "。三者不相符。"
+        output.set(err)
+        return None
 # ---set word function---
     
 # ---set save function---
 def set_save():
-    global save_with, save_name
+    global save_with, save_name, output
     save_name = i4_1.get()
     save_with = i4_2.get()
+    if save_with in p_title:
+        return None
+    else:
+        err = "error: 4. 命名標題不存在於標題名稱中。"
+        output.set(err)
+        return None
 # ---set save function---
 
 # ---set save folder function---
 def select_folder():
-    global save_folder
+    global save_folder, show_folder
     save_folder = fd.askdirectory(title="select a directory", initialdir='./')
+    show_folder.set(save_folder)
 # ---set save folder function---
     
 # ---execute function---
 def execute():
-    global p_numbers, p_paragraph, p_title, save_with, save_name, save_folder, doc_path, data_path, typeVar
-    print(p_numbers)
-    print(p_paragraph)
-    print(p_title)
-    print(save_with)
-    print(save_name)
-    print(save_folder)
-    print(doc_path)
-    print(data_path)
-    print(typeVar.get())
+    global p_numbers, p_paragraph, placeholders, p_title, save_with, save_name, save_folder, doc_path, data_path, typeVar, output
+    #validity check
+    if os.path.isfile(doc_path) == False:
+        err = "error: 1. 範本檔案(.docx)不存在，請重新選擇。"
+        output.set(err)
+        return None
+    if os.path.isfile(data_path) == False:
+        err = "error: 2. 資料檔案(.xlsx)不存在，請重新選擇。"
+        output.set(err)
+        return None
+    if (p_numbers == len(placeholders) and p_numbers == p_title) == False:
+        err = "error: 3. 替代數量:" + p_numbers + "，替代文字數量:" + len(placeholders) + "，標題名稱數量:" + len(p_title) + "。三者不相符。"
+        output.set(err)
+        return None
+    if save_with in p_title == False:
+        err = "error: 4. 命名標題不存在於標題名稱中。"
+        output.set(err)
+        return None
+    #end of validity check
+
+    p_paragraph = find_words()
+    for i in range(len(p_paragraph)):
+        if p_paragraph[i] == 0:
+            err = "範例檔案中該關鍵字不存在:" + placeholders[i]
+            output.set(err)
+            return None
+    export(typeVar)
+    output.set("產生完成。")
+    return None
 # ---execute function---
 
 # ---main function---
-#p_paragraph = find_words()
-#print(p_paragraph)
-#export(pdf = True)
-#print("done")
 window = tk.Tk()
 window.title("通知／證明產生器")
 window.minsize(width=300, height=600)
@@ -114,6 +147,9 @@ p1 = tk.Label(text="1. 選取範本檔案(.docx):", font=("Microsoft JhengHei UI
 p1.pack(anchor="w")
 b1 = tk.Button(text="選取檔案", command=select_doc)
 b1.pack(anchor="w")
+show_doc = tk.StringVar()
+p1_1 = tk.Label(textvariable=show_doc, font=("Microsoft JhengHei UI", 10))
+p1_1.place(x=60, y=28)
 pm_1 = tk.Label(text="", font=(10))
 pm_1.pack()
 
@@ -121,6 +157,9 @@ p2 = tk.Label(text="2. 選取資料檔案(.xlsx):", font=("Microsoft JhengHei UI
 p2.pack(anchor="w")
 b2 = tk.Button(text="選取檔案", command=select_data)
 b2.pack(anchor="w")
+show_data = tk.StringVar()
+p1_1 = tk.Label(textvariable=show_data, font=("Microsoft JhengHei UI", 10))
+p1_1.place(x=60, y=106)
 pm_2 = tk.Label(text="", font=(10))
 pm_2.pack()
 
@@ -155,6 +194,9 @@ i4_2 = tk.Entry()
 i4_2.place(x=60, y=355)
 b4_1 = tk.Button(text="選取儲存資料夾", command=select_folder)
 b4_1.pack(anchor="w")
+show_folder = tk.StringVar()
+p4_3 = tk.Label(textvariable=show_folder, font=("Microsoft JhengHei UI", 10))
+p4_3.place(x=100, y=378)
 b4_2 = tk.Button(text="儲存", command=set_save)
 b4_2.pack(anchor="w")
 pm_4 = tk.Label(text="", font=(10))
@@ -173,7 +215,6 @@ pm_5.pack()
 b6 = tk.Button(text="開始執行", command=execute)
 b6.pack()
 output = tk.StringVar()
-output.set("")
 p6 = tk.Label(textvariable=output, font=("Microsoft JhengHei UI", 10))
 p6.pack(anchor="w")
 
