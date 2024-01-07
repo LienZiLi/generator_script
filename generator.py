@@ -8,12 +8,12 @@ from tkinter import filedialog as fd
 # ---imports---
 
 # ---variables---
-p_numbers = 3
-placeholders = ["測試名", "測試編號", "測試試場"]
-p_title = ["姓名", "編號", "試場"]
+p_numbers = 0
+placeholders = []
+p_title = []
 p_paragraph = []
-save_with = "姓名"
-save_name = "test"
+save_with = ""
+save_name = ""
 save_folder = "./"
 doc_path = ""
 data_path = ""
@@ -31,11 +31,10 @@ def export(pdf):
                 if placeholders[j] in inline[k].text:
                     text = inline[k].text.replace(placeholders[j], data[p_title[j]][i])
                     inline[k].text = text
-            print(doc.paragraphs[p_paragraph[j]].text)
-        docx_name = save_folder + save_name + "_" + data[save_with][i].replace(" ", "_") + ".docx"
+        docx_name = save_folder + "/" + save_name + "_" + data[save_with][i].replace(" ", "_") + ".docx"
         doc.save(docx_name)
         if pdf:
-            pdf_name = save_folder + save_name + "_" + data[save_with][i].replace(" ", "_") + ".pdf"
+            pdf_name = save_folder + "/"  + save_name + "_" + data[save_with][i].replace(" ", "_") + ".pdf"
             convert(docx_name, pdf_name)
             os.remove(docx_name)
     return None
@@ -73,13 +72,21 @@ def select_data():
 # ---set word function---
 def set_words():
     global p_numbers, placeholders, p_title, output
+    if (i3_2.get() == "" or i3_2.get() == "" or i3_3.get() == ""):
+        err = "error: 3. 請輸入關鍵字。"
+        output.set(err)
+        return None
     p_numbers = int(i3_1.get())
     placeholders = i3_2.get().split(",")
     p_title = i3_3.get().split(",")
-    if (p_numbers == len(placeholders) and p_numbers == p_title):
+    if (p_numbers == 0):
+        err = "error: 3. 替代數量須為正整數。"
+        output.set(err)
+        return None
+    elif (p_numbers == len(placeholders) and p_numbers == len(p_title)):
         return None
     else:
-        err = "error: 3. 替代數量:" + p_numbers + "，替代文字數量:" + len(placeholders) + "，標題名稱數量:" + len(p_title) + "。三者不相符。"
+        err = "error: 3. 替代數量:" + str(p_numbers) + "，替代文字數量:" + str(len(placeholders)) + "，標題名稱數量:" + str(len(p_title)) + "。三者不相符。"
         output.set(err)
         return None
 # ---set word function---
@@ -89,7 +96,11 @@ def set_save():
     global save_with, save_name, output
     save_name = i4_1.get()
     save_with = i4_2.get()
-    if save_with in p_title:
+    if save_name == "" or save_with == "":
+        err = "error: 4. 請設定輸出檔案。"
+        output.set(err)
+        return None
+    elif save_with in p_title:
         return None
     else:
         err = "error: 4. 命名標題不存在於標題名稱中。"
@@ -107,6 +118,7 @@ def select_folder():
 # ---execute function---
 def execute():
     global p_numbers, p_paragraph, placeholders, p_title, save_with, save_name, save_folder, doc_path, data_path, typeVar, output
+    output.set("")
     #validity check
     if os.path.isfile(doc_path) == False:
         err = "error: 1. 範本檔案(.docx)不存在，請重新選擇。"
@@ -116,23 +128,40 @@ def execute():
         err = "error: 2. 資料檔案(.xlsx)不存在，請重新選擇。"
         output.set(err)
         return None
-    if (p_numbers == len(placeholders) and p_numbers == p_title) == False:
-        err = "error: 3. 替代數量:" + p_numbers + "，替代文字數量:" + len(placeholders) + "，標題名稱數量:" + len(p_title) + "。三者不相符。"
+    if (p_numbers == 0 or len(placeholders) == 0 or len(p_title) == 0):
+        err = "error: 3. 請輸入關鍵字。"
         output.set(err)
         return None
-    if save_with in p_title == False:
+    if (p_numbers == len(placeholders) and p_numbers == len(p_title)) == False:
+        err = "error: 3. 替代數量:" + str(p_numbers) + "，替代文字數量:" + str(len(placeholders)) + "，標題名稱數量:" + str(len(p_title)) + "。三者不相符。"
+        output.set(err)
+        return None
+    if save_name == "" or save_with == "":
+        err = "error: 4. 請設定輸出檔案。"
+        output.set(err)
+        return None
+    if save_with not in p_title:
         err = "error: 4. 命名標題不存在於標題名稱中。"
         output.set(err)
         return None
+    if os.path.exists(save_folder) == False:
+        err = "error: 4. 請選擇儲存資料夾。"
     #end of validity check
 
     p_paragraph = find_words()
     for i in range(len(p_paragraph)):
         if p_paragraph[i] == 0:
-            err = "範例檔案中該關鍵字不存在:" + placeholders[i]
+            err = "error: 範例檔案中該關鍵字不存在:" + placeholders[i]
             output.set(err)
             return None
-    export(typeVar)
+    data = pd.read_excel(data_path)
+    for i in range(len(p_title)):
+        if p_title[i] not in data:
+            err = "error: 資料檔案中該標題名稱不存在:" + p_title[i]
+            output.set(err)
+            return None
+    
+    export(typeVar.get())
     output.set("產生完成。")
     return None
 # ---execute function---
