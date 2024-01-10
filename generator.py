@@ -3,8 +3,9 @@ import docx
 from docx2pdf import convert
 import os
 import pandas as pd
-import tkinter as tk
 import threading
+import queue
+import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter import ttk
 # ---imports---
@@ -20,6 +21,8 @@ save_name = ""
 save_folder = "."
 doc_path = ""
 data_path = ""
+progress = 0
+q = queue.Queue()
 # ---variables---
 
 # ---new window function---
@@ -32,11 +35,16 @@ def new():
     # ---check function---
     def check_thread():
         if thread.is_alive():
+            if q.empty() == False:
+                progress = q.get()
+                bar["value"] = progress
+                show.set(f"轉換完成檔案數: {progress} / {num}")
             window.after(100, check_thread)
-            show.set(f"轉換完成檔案數: {progress.get()} / {num}")
         else:
             bar["value"] = num
             show.set(f"轉換完成檔案數: {num} / {num}\n已轉換完成。")
+            wb_1 = tk.Button(window, text="關閉所有視窗", command = close)
+            wb_1.pack()
     # ---check function---
     global num, progress, thread
     thread = threading.Thread(target=export)
@@ -44,28 +52,24 @@ def new():
     window.title("輸出進度")
     window.minsize(width=200, height=100)
     window.resizable(False, False)
-    bar = ttk.Progressbar(window, maximum=num, variable=progress)
+    bar = ttk.Progressbar(window, maximum=num)
     bar.pack()
     show = tk.StringVar()
     show.set(f"轉換完成檔案數: 0 / {num}")
     wp_1 = tk.Label(window, textvariable=show, font=("Microsoft JhengHei UI", 10))
     wp_1.pack()
 
-    bar.start()
     thread.start()
-    window.after(100, check_thread)
-
-    wb_1 = tk.Button(window, text="關閉所有視窗", command = close)
-    wb_1.pack()
+    check_thread()
 # ---new window function---
 
-# ---generating function---
+# ---generating files function---
 def export():
-    global p_numbers, p_paragraph, placeholders, p_title, save_with, save_name, save_folder, doc_path, data_path, output, num, progress, typeVar
+    global p_numbers, p_paragraph, placeholders, p_title, save_with, save_name, save_folder, doc_path, data_path, output, num, typeVar
     data = pd.read_excel(data_path)
     for i in range(num):
         doc = docx.Document(doc_path)
-        progress.set(i)
+        q.put(i)
         for j in range(p_numbers):
             inline = doc.paragraphs[p_paragraph[j]].runs
             for k in range(len(inline)):
@@ -79,7 +83,7 @@ def export():
             convert(docx_name, pdf_name)
             os.remove(docx_name)
     return None
-# ---generating function---
+# ---generating files function---
 
 # ---placeholder function---
 def find_words():
@@ -194,6 +198,7 @@ def execute():
     #end of validity check
 
     p_paragraph = find_words()
+    #existence check
     for i in range(len(p_paragraph)):
         if p_paragraph[i] == 0:
             err = "error: 範例檔案中該關鍵字不存在: " + placeholders[i]
@@ -205,7 +210,10 @@ def execute():
             err = "error: 資料檔案中該標題名稱不存在: " + p_title[i]
             output.set(err)
             return None
+    #end of existence check
+        
     num = len(data[p_title[0]])
+    b6["state"] = "disabled"
     new()
     return None
 # ---execute function---
@@ -290,9 +298,6 @@ b6.pack()
 output = tk.StringVar()
 p6 = tk.Label(root, textvariable=output, font=("Microsoft JhengHei UI", 10), fg='red')
 p6.pack(anchor="w")
-
-progress = tk.IntVar()
-progress.set(0)
 
 root.mainloop()
 # ---main function---
