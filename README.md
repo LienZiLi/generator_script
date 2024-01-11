@@ -17,7 +17,8 @@ Next, run the python file.
 
 ### Run with Executable File
 
-Simply click on `generator.exe`. It can take a while to startup, and note that it can **ONLY** be executed on Windows system.
+Download `generator.exe`: [Download Here](https://drive.google.com/file/d/1pyy0mBgzNAFMTbaUMiPG6PApDa8YgOhq/view?usp=sharing)\
+After download, simply click on `generator.exe`. It can take a while to startup, and note that it can **ONLY** be executed on Windows system.
 
 ## Using the Program
 
