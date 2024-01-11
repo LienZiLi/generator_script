@@ -46,7 +46,7 @@ def new():
             wb_1 = tk.Button(window, text="關閉所有視窗", command = close)
             wb_1.pack()
     # ---check function---
-    global num, progress, thread
+    global progress, thread
     thread = threading.Thread(target=export)
     window = tk.Toplevel()
     window.title("輸出進度")
@@ -65,10 +65,11 @@ def new():
 
 # ---generating files function---
 def export():
-    global p_numbers, p_paragraph, placeholders, p_title, save_with, save_name, save_folder, doc_path, data_path, output, num, typeVar
     data = pd.read_excel(data_path)
     for i in range(num):
         doc = docx.Document(doc_path)
+        with q.mutex:
+            q.queue.clear()
         q.put(i)
         for j in range(p_numbers):
             inline = doc.paragraphs[p_paragraph[j]].runs
@@ -80,6 +81,7 @@ def export():
         doc.save(docx_name)
         if typeVar.get():
             pdf_name = save_folder + "/"  + save_name + "_" + data[save_with][i].replace(" ", "_") + ".pdf"
+            
             convert(docx_name, pdf_name)
             os.remove(docx_name)
     return None
@@ -96,9 +98,19 @@ def find_words():
     return p_location
 # ---placeholder function---
 
+# ---check placeholder styling function---
+def check_run(index):
+    doc = docx.Document(doc_path)
+    inline = doc.paragraphs[p_paragraph[index]].runs
+    for j in range(len(inline)):
+        if placeholders[index] in inline[j].text:
+            return True
+    return False
+# ---check placeholder styling function---
+
 # ---choose doc function---
 def select_doc():
-    global doc_path, show_doc
+    global doc_path
     filetypes = (('document files', '*.docx'),)
     doc_path = fd.askopenfilename(title='Choose a file', initialdir='./', filetypes=filetypes)
     show_doc.set(doc_path.split("/")[-1])
@@ -108,7 +120,7 @@ def select_doc():
     
 # ---choose data function---
 def select_data():
-    global data_path, show_data
+    global data_path
     filetypes = (('Excel files', '*.xlsx'),)
     data_path = fd.askopenfilename(title='Choose a file', initialdir='./', filetypes=filetypes)
     show_data.set(data_path.split("/")[-1])
@@ -118,7 +130,7 @@ def select_data():
     
 # ---set word function---
 def set_words():
-    global p_numbers, placeholders, p_title, output
+    global p_numbers, placeholders, p_title
     if (i3_2.get() == "" or i3_2.get() == "" or i3_3.get() == ""):
         err = "error: 3. 請輸入關鍵字。"
         output.set(err)
@@ -141,7 +153,7 @@ def set_words():
     
 # ---set save function---
 def set_save():
-    global save_with, save_name, output
+    global save_with, save_name
     save_name = i4_1.get()
     save_with = i4_2.get()
     if save_name == "" or save_with == "":
@@ -159,14 +171,14 @@ def set_save():
 
 # ---set save folder function---
 def select_folder():
-    global save_folder, show_folder
+    global save_folder
     save_folder = fd.askdirectory(title="select a directory", initialdir='./')
     show_folder.set(save_folder)
 # ---set save folder function---
     
 # ---execute function---
 def execute():
-    global p_numbers, p_paragraph, placeholders, p_title, save_with, save_name, save_folder, doc_path, data_path, typeVar, output, num
+    global p_paragraph, num
     output.set("")
     #validity check
     if os.path.isfile(doc_path) == False:
@@ -204,6 +216,11 @@ def execute():
             err = "error: 範例檔案中該關鍵字不存在: " + placeholders[i]
             output.set(err)
             return None
+    for i in range(len(p_paragraph)):
+        if check_run(i) == False:
+            err = "error: 範例檔案中該關鍵字格式不統一: " + placeholders[i]
+            output.set(err)
+            return None
     data = pd.read_excel(data_path)
     for i in range(len(p_title)):
         if p_title[i] not in data:
@@ -221,7 +238,7 @@ def execute():
 # ---main function---
 root = tk.Tk()
 root.title("通知／證明產生器")
-root.minsize(width=300, height=600)
+root.minsize(width=300, height=580)
 root.resizable(False, False)
 
 p1 = tk.Label(root, text="1. 選取範本檔案(.docx):", font=("Microsoft JhengHei UI", 12))
@@ -240,7 +257,7 @@ b2 = tk.Button(root, text="選取檔案", command=select_data)
 b2.pack(anchor="w")
 show_data = tk.StringVar()
 p1_1 = tk.Label(root, textvariable=show_data, font=("Microsoft JhengHei UI", 10))
-p1_1.place(x=60, y=106)
+p1_1.place(x=60, y=102)
 pm_2 = tk.Label(root, text="", font=(10))
 pm_2.pack()
 
@@ -249,15 +266,15 @@ p3.pack(anchor="w")
 p3_1 = tk.Label(root, text="替代數量:", font=("Microsoft JhengHei UI", 10))
 p3_1.pack(anchor="w")
 i3_1 = tk.Entry(root)
-i3_1.place(x=60, y=185)
+i3_1.place(x=60, y=177)
 p3_2 = tk.Label(root, text="替代文字:", font=("Microsoft JhengHei UI", 10))
 p3_2.pack(anchor="w")
 i3_2 = tk.Entry(root)
-i3_2.place(x=60, y=208)
+i3_2.place(x=60, y=200)
 p3_3 = tk.Label(root, text="標題名稱:", font=("Microsoft JhengHei UI", 10))
 p3_3.pack(anchor="w")
 i3_3 = tk.Entry(root)
-i3_3.place(x=60, y=231)
+i3_3.place(x=60, y=223)
 b3 = tk.Button(root, text="儲存", command=set_words)
 b3.pack(anchor="w")
 pm_3 = tk.Label(root, text="", font=(10))
@@ -268,16 +285,16 @@ p4.pack(anchor="w")
 p4_1 = tk.Label(root, text="檔案名稱:", font=("Microsoft JhengHei UI", 10))
 p4_1.pack(anchor="w")
 i4_1 = tk.Entry(root)
-i4_1.place(x=60, y=332)
+i4_1.place(x=60, y=320)
 p4_2 = tk.Label(root, text="命名標題:", font=("Microsoft JhengHei UI", 10))
 p4_2.pack(anchor="w")
 i4_2 = tk.Entry(root)
-i4_2.place(x=60, y=355)
+i4_2.place(x=60, y=343)
 b4_1 = tk.Button(root, text="選取儲存資料夾", command=select_folder)
 b4_1.pack(anchor="w")
 show_folder = tk.StringVar()
 p4_3 = tk.Label(root, textvariable=show_folder, font=("Microsoft JhengHei UI", 10))
-p4_3.place(x=100, y=378)
+p4_3.place(x=100, y=366)
 b4_2 = tk.Button(root, text="儲存", command=set_save)
 b4_2.pack(anchor="w")
 pm_4 = tk.Label(root, text="", font=(10))
@@ -288,8 +305,8 @@ p5.pack(anchor="w")
 typeVar = tk.BooleanVar()
 radio1 = tk.Radiobutton(root, text=".docx檔", variable=typeVar, value=False)
 radio2 = tk.Radiobutton(root, text=".pdf檔", variable=typeVar, value=True)
-radio1.place(x=0, y=480)
-radio2.place(x=80, y=480)
+radio1.place(x=0, y=465)
+radio2.place(x=80, y=465)
 pm_5 = tk.Label(root, text="\n", font=(10))
 pm_5.pack()
 
